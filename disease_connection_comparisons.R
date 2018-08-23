@@ -156,7 +156,7 @@ prev_all3$nspecies[prev_all3$species=="PESU"]="Perimyotis subflavus"
 g2 <- ggplot(prev_all3, aes(x=dcluster_size, y=d_gd)) + 
   ylab("Change in pathogen prevalence")+
   xlab("Change in shared group connections")+#M. lucifugus - Social
-  coord_cartesian(ylim=c(0,1))+#,xlim=c(0,.7)
+  coord_cartesian(ylim=c(0,1),xlim=c(0,1))+
   geom_line(data=newdat,aes(x=dcluster_size,y=yhat),size = 1)+
   geom_point(aes(colour = nspecies), size=5.5)+
   scale_color_manual(name="", values=c("lightblue","red","orange"))+
@@ -164,5 +164,5 @@ g2 <- ggplot(prev_all3, aes(x=dcluster_size, y=d_gd)) +
   theme(panel.grid = element_blank(),axis.title=element_text(size=18),axis.text=element_text(size=15),axis.text.x=element_text(face="italic"), axis.line=element_line(),legend.position="top",legend.text = element_text(size=12,face="italic"))
 g2
 
-#ggsave(file="/Users/klangwig/Dropbox/Contact rate MS/Figures/23AUG2018_ChangeInPdWithChangeinSharedGroup.pdf",width=5.5,height=4,units="in",dpi=300,useDingbats = F)
+ggsave(file="/Users/klangwig/Dropbox/Contact rate MS/Figures/23AUG2018_ChangeInPdWithChangeinSharedGroup.pdf",width=5.5,height=4,units="in",dpi=300,useDingbats = F)
 
