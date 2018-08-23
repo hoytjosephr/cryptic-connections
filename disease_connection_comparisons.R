@@ -121,138 +121,9 @@ c
 
 #############Pd and shared group comparison###############
 dm = read.csv("sim_comb_df6.csv")
-prev_all2 = read.csv("prev_all2.csv")
-
-#subset to shared group data
-dm = subset(dm, dat.type=="neigh")
-
-##now try to table results, keep 0s!
-dm$species = dm$species_contacted
-dm$species=toupper(dm$species)
-dm$connections = dm$sim_sum*dm$species_contacted_count
-
-#average late connections
-c.late = aggregate(sim_sum~species+site,FUN=mean,data=dm)
-#average early connections
-c.early = aggregate(frac_sitespp_contacted~species+site,FUN=mean,data=dm)
-#make new df
-c.comb = c.late
-#bring in early connections
-c.comb$c.early = c.early$frac_sitespp_contacted
-#calculate change in connections
-c.comb$d_cluster = (c.comb$sim_sum-c.comb$c.early)/(1-c.comb$c.early)
-#create combined name for matching
-c.comb$site_spp=paste(c.comb$site,c.comb$species,sep = "_")
-
-#calculate average connections
-f1=aggregate(connections~species+site,FUN=mean,data=dm)
-f1$site_spp=paste(f1$site,f1$species,sep = "_")
-head(f1)
-prev_all2$site_spp=paste(prev_all2$site,prev_all2$species,sep = "_")
-head(prev_all2)
-
-#match various columns
-prev_all2$cluster_size=f1$connections[match(prev_all2$site_spp,f1$site_spp)]#average connections over winter
-prev_all2$dcluster_size=c.comb$d_cluster[match(prev_all2$site_spp,c.comb$site_spp)] #change in connections over winter
-prev_all2$sim_sum=c.comb$sim_sum[match(prev_all2$site_spp,c.comb$site_spp)] #total connections over winter
-
-####plot cluster size by change in Pd prev
-#NLS version - similar to ME model b/c RE are small
-require(nlme)
-e4=d_gd~1 / (1 + exp(-c1*sim_sum))
-
-#use mean total connections over winter
-f3 <- nlme(e4, #don't have to use an equation object - could have put code above here
-           data = prev_all2,
-           fixed = c1 ~ 1,
-           random = c1~ 1|site,
-           start = c(c1=1),
-           control = nlmeControl(maxIter = 100))
-summary(f3)
-
-1-var(resid(f3))/var(prev_all2$d_gd) #R2 for nlme model (similar to R2 for nls b/c random effects are very small)
-fitted(f3)
-ranef(f3)#random effects - very small as indicated by SD of random effect in summary
-
-#create new dataframefor smoothing
-xseq=seq(from=min(prev_all2$sim_sum), to=max(prev_all2$sim_sum), by=.001)
-newdat=data.frame(sim_sum=xseq, d_gd=NA)
-head(prev_all2)
-newdat$yhat=predict(f3,newdata = newdat, level = 0)
-
-prev_all2$nspecies[prev_all2$species=="EPFU"]="Eptesicus fuscus"
-prev_all2$nspecies[prev_all2$species=="MYLU"]="Myotis lucifugus"
-prev_all2$nspecies[prev_all2$species=="MYSE"]="Myotis septentrionalis"
-prev_all2$nspecies[prev_all2$species=="PESU"]="Perimyotis subflavus"
-
-library(ggplot2)
-g2 <- ggplot(prev_all2, aes(x=sim_sum, y=d_gd)) + 
-  ylab("Change in pathogen prevalence")+
-  xlab("Mean social group connections")+#M. lucifugus - Social
-    coord_cartesian(ylim=c(0,1))+
-  geom_line(data=newdat,aes(x=sim_sum,y=yhat),size = 1)+
-  geom_point(aes(colour = nspecies), size=5.5)+
-  scale_color_manual(name="", values=c("lightblue","red","orange"))+
-  theme_bw()+
-  theme(panel.grid = element_blank(),axis.title=element_text(size=18),axis.text=element_text(size=15),axis.text.x=element_text(face="italic"), axis.line=element_line(),legend.position="top",legend.text = element_text(size=12,face="italic"))
-g2
-
-#ggsave(file="/Users/klangwig/Dropbox/Contact rate MS/Figures/18MAY2018_v2_ChangeInPdWithMeanSocialGroup.pdf",width=5.5,height=4,units="in",dpi=300,useDingbats = F)
-
-#######sample of cluster data sums for comparison to dust#######
-#sample some individuals for sum of changes for comparison to dust
-
-unique(prev_all2$site_spp)
-dm$site_spp = paste(dm$site,dm$species,sep="_")
-unique(dm$site_spp)
-
-threes = c("WI_SB_MYLU",  "MI_BC_MYLU", "MI_MC_MYLU", "MI_TM_MYLU","WI_SP_PESU", "WI_SJ_PESU")
-fours=c( "WI_SJ_MYLU", "WI_SP_MYLU","WI_ST_PESU", "WI_SB_PESU","MI_MC_MYSE", "MI_GA_MYSE", "MI_BC_MYSE")
-fives=c( "MI_GA_MYLU", "MI_TM_MYSE")
-
-dm$sample_no=NA
-dm$sample_no[dm$site_spp %in% threes]="3"
-dm$sample_no[dm$site_spp %in% fours]="4"
-dm$sample_no[dm$site_spp %in% fives]="5"
-
-
-three.sites = subset(dm,sample_no=="3")
-four.sites = subset(dm,sample_no=="4")
-five.sites = subset(dm,sample_no=="5")
-
-set.seed(11)
-cs.three = three.sites %>%
-  group_by(sitespecCONT) %>%
-  sample_n(3)
-dim(cs.three)
-
-cs.four = four.sites %>%
-  group_by(sitespecCONT) %>%
-  sample_n(4)
-dim(cs.four)
-
-cs.five = five.sites %>%
-  group_by(sitespecCONT) %>%
-  sample_n(5)
-dim(cs.five)
-
-cs = bind_rows(cs.three,cs.four,cs.five)
-#calculate change
-c.late = aggregate(sim_sum~species+site,FUN=sum,data=cs)
-c.early = aggregate(frac_sitespp_contacted~species+site,FUN=sum,data=cs)
-c.comb = c.late
-c.comb$c.early = c.early$frac_sitespp_contacted
-c.comb$d_cluster = (c.comb$sim_sum-c.comb$c.early)/(1-c.comb$c.early)
-c.comb$site_spp=paste(c.comb$site,c.comb$species,sep = "_")
-
-
-prev_all2$site_spp=paste(prev_all2$site,prev_all2$species,sep = "_")
-head(prev_all2)
-
-prev_all2$dcluster_size=c.comb$d_cluster[match(prev_all2$site_spp,c.comb$site_spp)]
+prev_all3 = read.csv("cluster_pd_comparison.csv")
 
 #nonlinear model
-prev_all3 = prev_all2[!(is.na(prev_all2$dcluster_size)),]
 require(nlme)
 e4=d_gd~1 / (1 + exp(-c1*(dcluster_size-c2)))
 
@@ -268,25 +139,9 @@ summary(f3b)
 fitted(f3b)
 ranef(f3b)#random effects - very small as indicated by SD of random effect in summary
 
-#linear model
-f3b = lmer(d_gd~dcluster_size + (1|site), data=prev_all3); summary(f3b)
-a = coef(summary(f3b))[ , "t value"]
-a = unname(a[2])
-2*(1-pt(a,8))
-#get a p-value from the t value
-library(MuMIn)
-r.squaredGLMM(f3b)
-shapiro.test(resid(f3b))
-#passes normality test
-
-
 #create new dataframe for smooth lines
 xseq=seq(from=min(prev_all3$dcluster_size), to=max(prev_all3$dcluster_size), by=.001)
 newdat=data.frame(dcluster_size=xseq, d_gd=NA)
-
-###linear
-newdat$yhat=predict(f3b,newdata = newdat, re.form =NA)
-
 
 ##nonlinear
 newdat$yhat=predict(f3b,newdata = newdat, level = 0)
@@ -301,7 +156,7 @@ prev_all3$nspecies[prev_all3$species=="PESU"]="Perimyotis subflavus"
 g2 <- ggplot(prev_all3, aes(x=dcluster_size, y=d_gd)) + 
   ylab("Change in pathogen prevalence")+
   xlab("Change in shared group connections")+#M. lucifugus - Social
-  coord_cartesian(ylim=c(0,1))+
+  coord_cartesian(ylim=c(0,1))+#,xlim=c(0,.7)
   geom_line(data=newdat,aes(x=dcluster_size,y=yhat),size = 1)+
   geom_point(aes(colour = nspecies), size=5.5)+
   scale_color_manual(name="", values=c("lightblue","red","orange"))+
@@ -310,3 +165,4 @@ g2 <- ggplot(prev_all3, aes(x=dcluster_size, y=d_gd)) +
 g2
 
 #ggsave(file="/Users/klangwig/Dropbox/Contact rate MS/Figures/23AUG2018_ChangeInPdWithChangeinSharedGroup.pdf",width=5.5,height=4,units="in",dpi=300,useDingbats = F)
+
