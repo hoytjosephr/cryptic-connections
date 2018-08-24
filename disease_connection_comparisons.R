@@ -148,7 +148,6 @@ newdat$yhat=predict(f3b,newdata = newdat, level = 0)
 
 
 #change spp names from abbreviations
-prev_all3$nspecies[prev_all3$species=="EPFU"]="Eptesicus fuscus"
 prev_all3$nspecies[prev_all3$species=="MYLU"]="Myotis lucifugus"
 prev_all3$nspecies[prev_all3$species=="MYSE"]="Myotis septentrionalis"
 prev_all3$nspecies[prev_all3$species=="PESU"]="Perimyotis subflavus"
